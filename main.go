@@ -16,17 +16,21 @@ import (
 )
 
 type Person struct {
-	ID       int    `json:"id"`
+	ID       string `json:"id"`
 	Vorname  string `json:"vorname"`
 	Nachname string `json:"nachname"`
 	Email    string `json:"email"`
 }
 
 func main() {
-	myApp := app.New()
+	myApp := app.NewWithID("com.thebauershell.api2csv")
 	window := myApp.NewWindow("Personen API Downloader")
 
 	var outputPath string
+
+	urlEntry := widget.NewEntry()
+	urlEntry.SetText("http://localhost:8080/persons")
+	urlEntry.SetPlaceHolder("API URL eingeben")
 
 	formatSelect := widget.NewSelect([]string{"CSV", "Excel CSV", "JSON"}, nil)
 	pathLabel := widget.NewLabel("Kein Speicherort ausgewählt")
@@ -51,7 +55,12 @@ func main() {
 			return
 		}
 
-		resp, err := http.Get("http://localhost:8080/persons")
+		if urlEntry.Text == "" {
+			dialog.ShowError(fmt.Errorf("Bitte geben Sie eine API-URL ein"), window)
+			return
+		}
+
+		resp, err := http.Get(urlEntry.Text)
 		if err != nil {
 			dialog.ShowError(err, window)
 			return
@@ -92,6 +101,8 @@ func main() {
 	})
 
 	content := container.NewVBox(
+		widget.NewLabel("API URL:"),
+		urlEntry,
 		widget.NewLabel("Wählen Sie das Ausgabeformat:"),
 		formatSelect,
 		selectPathButton,
@@ -120,7 +131,7 @@ func saveAsCSV(persons []Person, path string) error {
 
 	for _, person := range persons {
 		if err := writer.Write([]string{
-			fmt.Sprintf("%d", person.ID),
+			person.ID,
 			person.Vorname,
 			person.Nachname,
 			person.Email,
@@ -148,7 +159,7 @@ func saveAsExcelCSV(persons []Person, path string) error {
 
 	for _, person := range persons {
 		if err := writer.Write([]string{
-			fmt.Sprintf("%d", person.ID),
+			person.ID,
 			person.Vorname,
 			person.Nachname,
 			person.Email,
